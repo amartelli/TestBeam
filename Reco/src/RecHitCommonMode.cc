@@ -50,28 +50,28 @@ RecHitCommonMode::evaluate()
           CellCentreXY = TheCell.GetCellCentreCoordinatesForPlots((rechit->id()).layer(), (rechit->id()).sensorIU(), (rechit->id()).sensorIV(), (rechit->id()).iu(), (rechit->id()).iv(), sensorsize);
           HGCalTBRecHit hit = (*rechit);
           if(hit.energyHigh() > 100)continue;
-          CellType type = (CellType)((rechit->id()).cellType());
+	  int type = (rechit->id()).cellType();
           if(type == HGCalTBDetId::kCellTypeStandard){     
             Full_Cell[(rechit->id()).layer() - 1]->Fill(hit.energyHigh()); 
           }
-		  else if(type == HGCalTBDetId::kCellTypeHalfCell){
+	  else if(type == HGCalTBDetId::kCellTypeHalfCell){
 	    Cell_counter_Half[(rechit->id()).layer() - 1]+= 1;
 	    Average_Pedestal_Per_Event_Half[(rechit->id()).layer() - 1] += hit.energyHigh(); 
 	  }
-		  else if(type == HGCalTBDetId::kCellTypeCalibInner){
+	  else if(type == HGCalTBDetId::kCellTypeCalibInner){
 	    Cell_counter_Calib_Pad[(rechit->id()).layer() - 1]++;
 	    Average_Pedestal_Per_Event_Calib_Pad[(rechit->id()).layer() - 1] += hit.energyHigh(); 
 	  } 
-		  else if(type == HGCalTBDetId::kCellTypeMerged && ( ((rechit->id()).iu() == 4 && (rechit->id()).iv() == 3) || ((rechit->id()).iu() == -7 && (rechit->id()).iv() == 4) || ((rechit->id()).iu() == 7 && (rechit->id()).iv() == -3) || ((rechit->id()).iu() == -4 && (rechit->id()).iv() == -3) ) ){
+	  else if(type == HGCalTBDetId::kCellTypeMerged && ( ((rechit->id()).iu() == 4 && (rechit->id()).iv() == 3) || ((rechit->id()).iu() == -7 && (rechit->id()).iv() == 4) || ((rechit->id()).iu() == 7 && (rechit->id()).iv() == -3) || ((rechit->id()).iu() == -4 && (rechit->id()).iv() == -3) ) ){
 	    Cell_counter_MB[(rechit->id()).layer() - 1]+=1;
 	    Average_Pedestal_Per_Event_MB[(rechit->id()).layer() - 1] += hit.energyHigh(); 
 	  }
-		  else if(type == HGCalTBDetId::kCellTypeMerged && ( ((rechit->id()).iu() == -4 && (rechit->id()).iv() == 6) || ((rechit->id()).iu() == -2 && (rechit->id()).iv() == 6) || ((rechit->id()).iu() == 4 && (rechit->id()).iv() == -7) || ((rechit->id()).iu() == 2 && (rechit->id()).iv() == -6) ) ){
+	  else if(type == HGCalTBDetId::kCellTypeMerged && ( ((rechit->id()).iu() == -4 && (rechit->id()).iv() == 6) || ((rechit->id()).iu() == -2 && (rechit->id()).iv() == 6) || ((rechit->id()).iu() == 4 && (rechit->id()).iv() == -7) || ((rechit->id()).iu() == 2 && (rechit->id()).iv() == -6) ) ){
 	    Cell_counter_Merged_Cell[(rechit->id()).layer() - 1]+=1;
 	    Average_Pedestal_Per_Event_Merged_Cell[(rechit->id()).layer() - 1] += hit.energyHigh(); 
 	  }
-      }
-
+	}
+	
         for(int iLayer(0);iLayer<MAXLAYERS;iLayer++){
           if(Full_Cell[iLayer]->GetEntries() > 0){
             Full_Cell[iLayer]->Fit("gaus", "Q");
@@ -91,50 +91,46 @@ float
 RecHitCommonMode::getCommonModeNoise(HGCalTBDetId id)
 {
       int layer = id.layer() - 1;
-      CellType type = (CellType)(id.cellType());
+      int type = id.cellType();
       int iu = id.iu();
       int iv = id.iv();
       float CMNoise(0);
       switch(type){
-        case FullCell: CMNoise = FullCell_CMNoise[layer]; break;
-        case CalibPad: CMNoise = CalibPad_CMNoise[layer]; break;
-        case HalfCell: CMNoise = HalfCell_CMNoise[layer]; break;
-        case MBandMerged: if( (iu == 4 && iv == 3) || ( iu == -7 && iv == 4) || ( iu == 7 && iv == -3) || ( iu == -4 && iv == -3) )CMNoise = MB_CMNoise[layer];
-                          else if ( (iu == -4 && iv == 6) || ( iu == -2 && iv == 6) || ( iu == 4 && iv == -7) || ( iu == 2 && iv == -6) )CMNoise = MergedCell_CMNoise[layer];
-
-                          break;
-        case OuterCalib: CMNoise = FullCell_CMNoise[layer]; break;
-        default: CMNoise = 0; break;
+      case HGCalTBDetId::kCellTypeStandard: CMNoise = FullCell_CMNoise[layer]; break;
+      case HGCalTBDetId::kCellTypeCalibInner: CMNoise = CalibPad_CMNoise[layer]; break;
+      case HGCalTBDetId::kCellTypeHalfCell: CMNoise = HalfCell_CMNoise[layer]; break;
+      case HGCalTBDetId::kCellTypeMerged: if( (iu == 4 && iv == 3) || ( iu == -7 && iv == 4) || ( iu == 7 && iv == -3) || ( iu == -4 && iv == -3) )CMNoise = MB_CMNoise[layer];
+	else if ( (iu == -4 && iv == 6) || ( iu == -2 && iv == 6) || ( iu == 4 && iv == -7) || ( iu == 2 && iv == -6) )CMNoise = MergedCell_CMNoise[layer];
+	break;
+      case HGCalTBDetId::kCellTypeCalibOuter: CMNoise = FullCell_CMNoise[layer]; break;
+      default: CMNoise = 0; break;
       };
-
-   return CMNoise;
-}
-
       
-float 
-RecHitCommonMode::getCommonModeNoise(int layer, CellType type, std::string const& subtype/*=""*/)
-{
-      if( (subtype != "") && (subtype != "MB") && (subtype != "MergedCell")){
-        throw cms::Exception("InvalidCellType") << "Invalid cell subtype: " <<  subtype;
-      } 
-
-      float CMNoise(0);
-      switch(type){
-        case FullCell: CMNoise = FullCell_CMNoise[layer]; break;
-        case CalibPad: CMNoise = CalibPad_CMNoise[layer]; break;
-        case HalfCell: CMNoise = HalfCell_CMNoise[layer]; break;
-        case MBandMerged: if(subtype == "MB")CMNoise = MB_CMNoise[layer];
-                          else if(subtype == "MergedCell")CMNoise = MergedCell_CMNoise[layer];
-                          break;
-        case OuterCalib: CMNoise = FullCell_CMNoise[layer]; break;
-        default: CMNoise = 0; break;
-      };
-
-   return CMNoise;
+      return CMNoise;
 }
 
 
+float 
+RecHitCommonMode::getCommonModeNoise(int layer, HGCalTBDetId::CellType type, std::string const& subtype/*=""*/)
+{
+  if( (subtype != "") && (subtype != "MB") && (subtype != "MergedCell")){
+    throw cms::Exception("InvalidCellType") << "Invalid cell subtype: " <<  subtype;
+  } 
 
+  float CMNoise(0);
+  switch(type){
+  case HGCalTBDetId::kCellTypeStandard: CMNoise = FullCell_CMNoise[layer]; break;
+  case HGCalTBDetId::kCellTypeCalibInner: CMNoise = CalibPad_CMNoise[layer]; break;
+  case HGCalTBDetId::kCellTypeHalfCell: CMNoise = HalfCell_CMNoise[layer]; break;
+  case HGCalTBDetId::kCellTypeMerged: if(subtype == "MB") CMNoise = MB_CMNoise[layer];
+    else if(subtype == "MergedCell") CMNoise = MergedCell_CMNoise[layer];
+    break;
+  case HGCalTBDetId::kCellTypeCalibOuter: CMNoise = FullCell_CMNoise[layer]; break;
+  default: CMNoise = 0; break;
+  };
+
+  return CMNoise;
+}
 
 
 

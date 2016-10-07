@@ -171,11 +171,12 @@ RecHitPlotter_HighGain_CM_Correction::analyze(const edm::Event& event, const edm
         CM.evaluate();
         
         for(int iii = 0; iii < MAXLAYERS; iii++){
-            if(CM.getCommonModeNoise(iii, CellType::FullCell) != 0) Full_Cell[iii]->Fill(CM.getCommonModeNoise(iii, CellType::FullCell));
-            if(CM.getCommonModeNoise(iii, CellType::HalfCell) != 0) Half_Cell[iii]->Fill(CM.getCommonModeNoise(iii, CellType::HalfCell));
-            if(CM.getCommonModeNoise(iii, CellType::MBandMerged, "MB") != 0) MB_Cell[iii]->Fill(CM.getCommonModeNoise(iii, CellType::MBandMerged, "MB"));
-            if(CM.getCommonModeNoise(iii, CellType::MBandMerged, "MergedCell") != 0) Merged_Cell[iii]->Fill(CM.getCommonModeNoise(iii, CellType::MBandMerged, "MergedCell"));
-            if(CM.getCommonModeNoise(iii, CellType::CalibPad) != 0) Calib_Pads[iii]->Fill(CM.getCommonModeNoise(iii, CellType::CalibPad));
+	  if(CM.getCommonModeNoise(iii, HGCalTBDetId::kCellTypeStandard) != 0) Full_Cell[iii]->Fill(CM.getCommonModeNoise(iii, HGCalTBDetId::kCellTypeStandard));
+	  if(CM.getCommonModeNoise(iii, HGCalTBDetId::kCellTypeHalfCell) != 0) Half_Cell[iii]->Fill(CM.getCommonModeNoise(iii, HGCalTBDetId::kCellTypeHalfCell));
+	  if(CM.getCommonModeNoise(iii, HGCalTBDetId::kCellTypeMerged, "MB") != 0) MB_Cell[iii]->Fill(CM.getCommonModeNoise(iii, HGCalTBDetId::kCellTypeMerged, "MB"));
+	  if(CM.getCommonModeNoise(iii, HGCalTBDetId::kCellTypeMerged, "MergedCell") != 0) Merged_Cell[iii]->Fill(CM.getCommonModeNoise(iii, HGCalTBDetId::kCellTypeMerged, "MergedCell"));
+	  if(CM.getCommonModeNoise(iii, HGCalTBDetId::kCellTypeCalibInner) != 0) Calib_Pads[iii]->Fill(CM.getCommonModeNoise(iii, HGCalTBDetId::kCellTypeCalibInner));
+	  if(CM.getCommonModeNoise(iii, HGCalTBDetId::kCellTypeCalibOuter) != 0) Calib_Pads[iii]->Fill(CM.getCommonModeNoise(iii, HGCalTBDetId::kCellTypeCalibOuter));
         }        
 
 	for(auto RecHit : *Rechits) {
@@ -193,7 +194,7 @@ RecHitPlotter_HighGain_CM_Correction::analyze(const edm::Event& event, const edm
 	    h_digi_layer_channel[eid.iskiroc()-1][eid.ichan()][(RecHit.id()).layer() -1]->Fill(RecHit.energyHigh() - CM.getCommonModeNoise(RecHit.id()));
           }  
 	  
-          Noise_2D_Profile->Fill((64*(eid.iskiroc()-1) + eid.ichan()),RecHit.energyHigh() - CM.getCommonModeNoise((RecHit.id()).layer() -1, CellType::FullCell));
+          Noise_2D_Profile->Fill((64*(eid.iskiroc()-1) + eid.ichan()),RecHit.energyHigh() - CM.getCommonModeNoise((RecHit.id()).layer() -1, HGCalTBDetId::kCellTypeStandard));
 
 	} 
                            
