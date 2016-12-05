@@ -87,6 +87,7 @@ class Bad_Spill_Filter : public edm::stream::EDFilter<> {
 //
 Bad_Spill_Filter::Bad_Spill_Filter(const edm::ParameterSet& iConfig)
 {
+  std::cout << " Bad_Spill_Filter::Bad_Spill_Filter " << std::endl;
    //now do what ever initialization is needed
 	int counter = 0;
 	int run_counter = 0;
@@ -99,6 +100,9 @@ Bad_Spill_Filter::Bad_Spill_Filter(const edm::ParameterSet& iConfig)
 			if(layers_config_ == 2) cout<<endl << "Unable to open file " << name_CFG2;
                         exit(0);
                 }
+	else {
+	  std::cout << " file name = " << std::endl;
+	}
 
 	while(!feof(m_file)){
 

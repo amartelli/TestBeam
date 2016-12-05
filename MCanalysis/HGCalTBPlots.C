@@ -48,11 +48,11 @@ public :
 
   double             cluster(const std::vector<unsigned int>& ids,
 			     const std::vector<float>& energy, 
-			     unsigned int id, int extent, double EperMIP, double mipthresh);
+			     unsigned int id, int extent, double EperMIP, double mipthresh, int layer, int& totCells);
   unsigned int       localMax(const std::vector<unsigned int>& ids,
 			      const std::vector<float>& energy, 
 			      unsigned int layer);
-  std::vector<int>   neighbours(int cell, int extent);
+  std::vector<int>   neighbours(int cell, int extent, int& totCells);
   std::pair<int,int> findRowCol(int cell);
 private :
   std::vector<int> leftCell, cells, addCell, subCell;
@@ -89,43 +89,46 @@ HexTopology::HexTopology(bool fine) {
     //    cout<<"initial value in left cell "<<k<<" is "<<leftCell[k]<<endl;
     leftCell.push_back((leftCell[k]+cells[k]));
     int ii = (cells[k]-full -1)/2; ///this is: (no. of cells in a row - max. no. of full cells in a row in the full layer -1)/2
-    //cout<<"cells["<<k<<"] and full "<<cells[k]<<" "<<full<<" and ii is "<<ii<<endl;
+    //    cout<<"cells["<<k<<"] and full "<<cells[k]<<" "<<full<<" and ii is "<<ii<<endl;
     subCell.push_back(ii);
 
-    //cout<<"Final value in left cell "<<k<<" and subCell value is "<<leftCell[k]<<" "<<subCell[k]<<endl;
+    //    cout<<"Final value in left cell "<<k<<" and subCell value is "<<leftCell[k]<<" "<<subCell[k]<<endl;
 
   }
-  /*
-  std::cout << "Initialize Wafer of type " << fine << " with " << nrows
-	    << " rows and " << leftCell[nrows] << " cells" << std::endl;
-  for (unsigned int k=0; k<nrows; ++k) 
-    std::cout << "Row[" << k << "] with " << cells[k] << ":" << addCell[k]
-	      << " cells: leftmost " << leftCell[k] << " offset "
-	      << subCell[k] << std::endl;
-  */
+  
+  // std::cout << "Initialize Wafer of type " << fine << " with " << nrows
+  // 	    << " rows and " << leftCell[nrows] << " cells" << std::endl;
+  // for (unsigned int k=0; k<nrows; ++k) {
+  //   std::cout << "Row[" << k << "] with " << cells[k] << ":" << addCell[k]
+  // 	      << " cells: leftmost " << leftCell[k] << " offset "
+  // 	      << subCell[k] << std::endl;
+  //   std::cout << " with cells = " << " " ;
+  //   for(int ij=0; ij<cells[k]; ++ij) std::cout << leftCell[k]+ij << " ";
+  // } 	      
+
 }
 
 std::pair<int,int> HexTopology::findRowCol(int cell) {
   int row(-1), col(-1);
-  //cout<<"findRowCol called "<<endl;
-  //cout<<"cell id is "<<cell<<endl;
+  //  cout<<"findRowCol called "<<endl;
+  //  cout<<"cell id is "<<cell<<endl;
   if (cell >= leftCell[0] && cell < leftCell[nrows]) {
     for (unsigned int i=0; i<=nrows; ++i) {
       if (cell < leftCell[i]) {
 	row = i-1; col = cell-leftCell[i-1]-subCell[i-1]-addCell[i-1]; 
-	//cout<<"cell : row : leftCell[i-1] : subCell[i-1] : addCell[i-1] : col : "<<cell<<" "<<row<<" "<<leftCell[i-1]<<" "<<subCell[i-1]<<" "<<addCell[i-1]<<" "<<col<<endl;
+	//	cout<<"cell : row : leftCell[i-1] : subCell[i-1] : addCell[i-1] : col : "<<cell<<" "<<row<<" "<<leftCell[i-1]<<" "<<subCell[i-1]<<" "<<addCell[i-1]<<" "<<col<<endl;
 
-	//cout<<"My column number "<<cell-leftCell[i-1]<<endl;
-	//if(col!=(cell-leftCell[i-1])) cout<<"DIFF COLUMNS!!!!"<<endl;
+	//	cout<<"My column number "<<cell-leftCell[i-1]<<endl;
+	//	if(col!=(cell-leftCell[i-1])) cout<<"DIFF COLUMNS!!!!"<<endl;
 	break;
       }
     }
   }
-// std::cout << "Cell " << cell << " row " << row << " column " << col << std::endl;
+  // std::cout << "Cell " << cell << " row " << row << " column " << col << std::endl;
   return std::pair<int,int>(row,col);
 }
 
-std::vector<int> HexTopology::neighbours(int cell, int extent) {
+std::vector<int> HexTopology::neighbours(int cell, int extent, int& totCells) {
   int cols[11] = {0,-1,1,-2,2,-3,3,-4,4,-5,5};
   std::vector<int>   listCell;
   std::pair<int,int> rowCol = findRowCol(cell);
@@ -146,14 +149,21 @@ std::vector<int> HexTopology::neighbours(int cell, int extent) {
 	  if (row >= 0 && row <= (int)(nrows)) {
 	    int adc = (addc > addCell[row]) ? addc : addCell[row];
 	    int col = rowCol.second+cols[j]+leftCell[row]+subCell[row]+adc;
-	    if (col >= leftCell[row] && col < leftCell[row+1]) 
+	    if (col >= leftCell[row] && col < leftCell[row+1]) {
 	      listCell.push_back(col);
+	      //    std::cout << " col = " << col << std::endl; 
+		}
 	  }
 	}
       }
       nadd--;
     }
   }
+  // std::cout << "neighbours = " << std::endl;
+  // for(unsigned int nC=0; nC<listCell.size(); ++nC) std::cout << " " << listCell.at(nC);
+  //  if(extent == 7) std::cout << " \n ext 7 tot cells = " << listCell.size()  << std::endl;
+  //  if(extent == 7)  
+  totCells = listCell.size();
   return listCell;
 }
 
@@ -161,14 +171,47 @@ std::vector<int> HexTopology::neighbours(int cell, int extent) {
 //E1 => 0 E7 => 1 E19 => 2 EAll => 7
 double HexTopology::cluster(const std::vector<unsigned int>& ids,
 			    const std::vector<float>& energies, 
-			    unsigned int id, int extent, double EperMIP, double mipthresh) {
+			    unsigned int id, int extent, double EperMIP, double mipthresh, int layer, int& totCells) {
   double energy(0);
   int cell = id&0xFF;
-  std::vector<int> listCell = neighbours(cell, extent);
+  //  std::cout << " cluster cell id = " << cell << std::endl;
+
+  std::vector<int> listCell = neighbours(cell, extent, totCells);
+  
+  /*
+  std::vector<int> listCell_dummy = neighbours(cell, extent, totCells);
+  std::vector<int> listCell;
+  for(unsigned int iC=0; iC<listCell_dummy.size(); ++iC){
+    int cellId = listCell_dummy.at(iC);
+    if(cellId == 0 || cellId == 1 || cellId == 3 || cellId == 5 || 
+	 cellId == 131 || cellId == 132 || cellId == 127 || cellId == 129 ||
+	 cellId == 95 || cellId == 107 ||
+	 cellId == 26 || cellId == 15 ||
+	 cellId == 25 || cellId == 37 ||
+	 cellId == 117 || cellId == 106) continue;
+    listCell.push_back(cellId);
+  }
+  */
+
   for (unsigned int k=0; k<ids.size(); ++k) {
     int idcell = ids[k]&0xFF;
+
+    //      std::cout << " idcell " << idcell << " energy = " << energies[k]/EperMIP << " layer = " << ((ids[k]>>19)&0x7F) << std::endl;
+
+    //    std::cout << " idcell = " << idcell << " energy = energies[k]/EperMIP << " << energies[k]/EperMIP << std::endl;
     if ((std::find(listCell.begin(),listCell.end(),idcell) != listCell.end()) &&
-	((id&0xFFFFFF00) == (ids[k]&0xFFFFFF00))) {
+	//	(layer == ((ids[k]>>19)&0x7F)) ) {
+      //      std::cout << " idcell " << idcell << " energy = " << energies[k]/EperMIP << " layer = " << ((ids[k]>>19)&0x7F) << std::endl;
+      ((id&0xFFFFFF00) == (ids[k]&0xFFFFFF00))) {
+
+     //std::cout << " id&0xFFFFFF00 = " << id&0xFFFFFF00 << " energy = " << energies[k]/EperMIP << " layer = " << ((ids[k]>>19)&0x7F) << std::endl;
+
+      if(idcell == 0 || idcell == 1 || idcell == 3 || idcell == 5 ||              
+	 idcell == 131 || idcell == 132 || idcell == 127 || idcell == 129 ||    
+	 idcell == 95 || idcell == 107 ||                                       
+	 idcell == 26 || idcell == 15 ||                                        
+	 idcell == 25 || idcell == 37 ||                                        
+	 idcell == 117 || idcell == 106) continue;                              
 
       if(energies[k]/EperMIP > mipthresh)
 	energy += energies[k];
@@ -184,12 +227,15 @@ unsigned int HexTopology::localMax(const std::vector<unsigned int>& ids,
   unsigned int idmax(0);
   for (unsigned int k=0; k<ids.size(); ++k) {
     if (layer == ((ids[k]>>19)&0x7F)) {
+
+      //      std::cout << " layer " << layer << " id = " << (((ids[k])>>0)&0xFF) << " energy = " << energy[k] <<  std::endl;
       if (energy[k] > emax) {
 	emax  = energy[k];
 	idmax = ids[k];
       }
     }
   }
+  //  std::cout << " MAX = " << (((idmax)>>0)&0xFF) << " energy = " << emax <<  std::endl;
   return idmax;
 }
 /*
