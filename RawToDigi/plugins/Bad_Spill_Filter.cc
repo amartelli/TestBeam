@@ -64,8 +64,7 @@ class Bad_Spill_Filter : public edm::stream::EDFilter<> {
 
       std::array< std::vector <int> , Num_BAD_RUNS_CFG> Bad_Run_Spill_Array;
 	FILE* m_file;
-	string name_CFG1 = "/afs/cern.ch/user/a/amartell/eos/cms/store/group/upgrade/HGCAL/TestBeam/CERN/Sept2016/CondObjects/data/Bad_Run_Spill_CFG1.txt";
-	string name_CFG2 = "/afs/cern.ch/user/a/amartell/eos/cms/store/group/upgrade/HGCAL/TestBeam/CERN/Sept2016/CondObjects/data/Bad_Run_Spill_CFG2.txt";
+        string name_CFG;
       //virtual void beginRun(edm::Run const&, edm::EventSetup const&) override;
       //virtual void endRun(edm::Run const&, edm::EventSetup const&) override;
       //virtual void beginLuminosityBlock(edm::LuminosityBlock const&, edm::EventSetup const&) override;
@@ -91,14 +90,15 @@ Bad_Spill_Filter::Bad_Spill_Filter(const edm::ParameterSet& iConfig)
 	bool Not_Filled_Once = true;
 	int run_counter = 0;
 	layers_config_ = iConfig.getParameter<int>("layers_config");
-	if(layers_config_ == 1) m_file = fopen(name_CFG1.c_str(),"r");	
-	else if(layers_config_ == 2) m_file = fopen(name_CFG2.c_str(),"r");
-
+	if(layers_config_ == 1) name_CFG = iConfig.getParameter<std::string>("nameCFG1");
+	else if(layers_config_ == 2) name_CFG = iConfig.getParameter<std::string>("nameCFG2");
+	
+	m_file = fopen(name_CFG.c_str(),"r");
 	if (m_file == 0) {
-                        if(layers_config_ == 1) cout<<endl << "Unable to open file " << name_CFG1;
-			if(layers_config_ == 2) cout<<endl << "Unable to open file " << name_CFG2;
-                        exit(0);
-                }
+	  if(layers_config_ == 1) cout<<endl << "Unable to open file for cfg1";
+	  if(layers_config_ == 2) cout<<endl << "Unable to open file for cfg2";
+	  exit(0);
+	}
 
 	while(!feof(m_file)){
 
