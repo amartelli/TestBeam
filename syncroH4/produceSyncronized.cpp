@@ -8,6 +8,9 @@
 #include <fstream>
 #include <cstdio>
 #include <cstdlib>
+#include <stdlib.h>
+// #include <boost/filesystem.hpp>
+// #include <boost/lambda/bind.hpp>
 
 #include "TROOT.h"
 #include "TSystem.h"
@@ -42,7 +45,24 @@ int main(int argc, char** argv){
 
   TChain* tree = new TChain("H4tree", ("H4treeRecoWCOut_"+H4_run+".root").c_str());
   if(argc < 3) tree->Add((H4_run+"/*.root").c_str());
-  else tree->Add((pathToH4_run+"/"+H4_run+"/*.root").c_str());
+  else{
+    
+    int numberOfFiles = 0;
+
+    system(("ls "+pathToH4_run+"/"+H4_run+" | wc -l > info.txt").c_str());
+    std::ifstream inFile;
+    inFile.open("info.txt", std::ios::in);
+    inFile >> numberOfFiles;
+    inFile.close();
+    system("rm info.txt");
+    std::cout << "numberOfFiles = " << numberOfFiles << std::endl;
+    for (int ifile=1; ifile<=numberOfFiles; ++ifile){
+      tree->Add(Form((pathToH4_run+"/"+H4_run+"/%d.root").c_str(), ifile));
+      //  std::cout << " file added = " << Form((pathToH4_run+"/"+H4_run+"/%d.root").c_str(), ifile) << std::endl;
+    }
+    
+    //    tree->Add((pathToH4_run+"/"+H4_run+"/*.root").c_str());
+  }
 
 
   H4treeRecoWC* H4Recotree = new H4treeRecoWC(tree);
@@ -114,19 +134,20 @@ int main(int argc, char** argv){
 
   // write out txt
   std::ofstream outFile(("WC_H4Run"+H4_run+".txt").c_str(), std::ios::out);
-  outFile << "H4run " << atoi(H4_run.c_str()) << " evtSpill " << evtSpill << std::endl;
+  //  outFile << "H4run " << atoi(H4_run.c_str()) << " evtSpill " << evtSpill << std::endl;
 
   
   for(unsigned int iEv = 0; iEv < dT.size(); ++iEv){
-
+    /*
     if(iEv  == evtSpill && iEv+1 != dT.size()){
-      outFile << "H4run " << atoi(H4_run.c_str()) << " evtSpill " << evtPerSpill.at(nSpill) << std::endl;
+      //  outFile << "H4run " << atoi(H4_run.c_str()) << " evtSpill " << evtPerSpill.at(nSpill) << std::endl;
       //std::cout << " fine spill " << nSpill << " nEvt = " << evtSpill << " dEvt = " << evtPerSpill.at(nSpill) << " iEv = " << iEv << " dT = " << dT.at(iEv) << std::endl;
       if(nSpill < evtPerSpill.size()-1){
 	++nSpill;
 	evtSpill += evtPerSpill.at(nSpill);
       }
-    }  
+    }
+    */  
     outFile << WC_x0.at(iEv) << " \t " << WC_x1.at(iEv) << " \t " << WC_y0.at(iEv) << " \t " << WC_y1.at(iEv) << std::endl;
   }
   
