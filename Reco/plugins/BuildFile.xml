@@ -6,9 +6,11 @@
 <use name="FWCore/Utilities"/>
 <use name="FWCore/Common"/>
 <use name="DataFormats/Math"/>
+<use name="DataFormats/HGCRecHit"/>
 <use name="HGCal/DataFormats"/>
 <use name="HGCal/Geometry"/>
 <use name="HGCal/CondObjects" />
 <use name="HGCal/Reco"/>
 <use name="CommonTools/UtilAlgos"/>
+<use name="Geometry/HGCalGeometry"/>
 <flags EDM_PLUGIN="1"/>

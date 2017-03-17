@@ -9,14 +9,15 @@ options.register('dataFolder',
                  #'/afs/cern.ch/work/r/rchatter/Final_Event_Builder/CMSSW_8_0_1/src/HGCal/tmpOut/',
                  #'/afs/cern.ch/user/a/amartell/public/HGCal/TB_data/'
                  #'/tmp/amartell/rearrangedTxtFiles/',
-                 '/afs/cern.ch/user/a/amartell/eos/cms/store/group/upgrade/HGCAL/TestBeam/CERN/Sept2016/',
+                 '/eos/cms/store/group/upgrade/HGCAL/TestBeam/CERN/Sept2016/',
                  #'~/eos/cms/store/group/upgrade/HGCAL/TestBeam/CERN/Sept2016/',
                  VarParsing.VarParsing.multiplicity.singleton,
                  VarParsing.VarParsing.varType.string,
                  'folder containing raw text input')
 
 options.register('outputFolder',
-                 '/tmp/amartell/output/',
+                 #'/tmp/amartell/output/',
+                 '/eos/cms/store/group/upgrade/HGCAL/TestBeam/CERN/recoEDMfiles/',
                  VarParsing.VarParsing.multiplicity.singleton,
                  VarParsing.VarParsing.varType.string,
                  'Result of processing')
@@ -132,8 +133,13 @@ process.dumpDigi = cms.EDAnalyzer("HGCalDigiDump")
 if (options.chainSequence == 7):
     options.output = "%s/RECO_type%s_run%06d.root"%(options.outputFolder,options.runType,options.runNumber)
     process.output = cms.OutputModule("PoolOutputModule",
-                                      fileName = cms.untracked.string(options.output)
-                                      )
+                                      fileName = cms.untracked.string(options.output),
+                                      outputCommands = cms.untracked.vstring(#'keep *'
+                                                                              'drop *',
+                                                                              'keep *_HGCalRecHit_HGCEERecHits_*'
+                                                                              )
+    )
+
 
 
 # process.TFileService = cms.Service("TFileService", fileName = cms.string("HGC_Output_6_Reco_Display.root") )
@@ -151,18 +157,22 @@ if(options.configuration == "-1"):
     process.BadSpillFilter.layers_config = cms.int32(-1)
     process.LayerSumAnalyzer.layers_config = cms.int32(-1)
     process.hgcaltbrechits.layers_config = cms.int32(-1)
+    process.HGCalRecHit.layers_config = cms.int32(-1)
 elif(options.configuration == "0"):
     process.BadSpillFilter.layers_config = cms.int32(0)
     process.LayerSumAnalyzer.layers_config = cms.int32(0)
     process.hgcaltbrechits.layers_config = cms.int32(0)
+    process.HGCalRecHit.layers_config = cms.int32(0)
 elif(options.configuration == "1"):
     process.BadSpillFilter.layers_config = cms.int32(1)
     process.LayerSumAnalyzer.layers_config = cms.int32(1)
     process.hgcaltbrechits.layers_config = cms.int32(1)
+    process.HGCalRecHit.layers_config = cms.int32(1)
 elif(options.configuration == "2"):
     process.BadSpillFilter.layers_config = cms.int32(2)
     process.LayerSumAnalyzer.layers_config = cms.int32(2)
     process.hgcaltbrechits.layers_config = cms.int32(2)
+    process.HGCalRecHit.layers_config = cms.int32(2)
 
 ########Activate this to produce event displays#########################################
 #process.p =cms.Path(process.hgcaltbdigis*process.hgcaltbrechits*process.hgcaltbrechitsplotter_highgain_new)
@@ -190,7 +200,8 @@ elif (options.chainSequence == 5):
 elif (options.chainSequence == 6):
     process.p =cms.Path(process.hgcaltbdigis*process.BadSpillFilter*process.hgcaltbrechits*process.LayerSumAnalyzer)
 elif (options.chainSequence == 7):
-    process.p =cms.Path(process.hgcaltbdigis*process.BadSpillFilter*process.hgcaltbrechits)
+    process.p =cms.Path(process.hgcaltbdigis*process.BadSpillFilter*process.hgcaltbrechits*process.HGCalRecHit)
+    #process.p =cms.Path(process.hgcaltbdigis*process.BadSpillFilter*process.hgcaltbrechits)
 
 
 if (options.chainSequence == 7):
