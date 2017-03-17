@@ -38,7 +38,8 @@ HGCalTBRecHitProducer::HGCalTBRecHitProducer(const edm::ParameterSet& cfg)
 void HGCalTBRecHitProducer::produce(edm::Event& event, const edm::EventSetup& iSetup)
 {
 
-	std::auto_ptr<HGCalTBRecHitCollection> rechits(new HGCalTBRecHitCollection); //auto_ptr are automatically deleted when out of scope
+  //	std::auto_ptr<HGCalTBRecHitCollection> rechits(new HGCalTBRecHitCollection); //auto_ptr are automatically deleted when out of scope
+  auto rechits = std::make_unique<HGCalTBRecHitCollection>();
 
 	edm::Handle<HGCalTBDigiCollection> digisHandle;
 	event.getByToken(_digisToken, digisHandle);
@@ -114,7 +115,7 @@ void HGCalTBRecHitProducer::produce(edm::Event& event, const edm::EventSetup& iS
 			if(iSample == 0) rechits->push_back(recHit); ///\todo define an algorithm for the energy if more than 1 sample, code inefficient
 		}
 	}
-	event.put(rechits, outputCollectionName);
+	event.put(std::move(rechits), outputCollectionName);
 }
 // Should there be a destructor ??
 DEFINE_FWK_MODULE(HGCalTBRecHitProducer);

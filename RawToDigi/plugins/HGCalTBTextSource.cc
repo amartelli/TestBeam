@@ -111,7 +111,8 @@ bool HGCalTBTextSource::readLines()
 
 void HGCalTBTextSource::produce(edm::Event & e)
 {
-	std::auto_ptr<FEDRawDataCollection> bare_product(new  FEDRawDataCollection());
+  //	std::auto_ptr<FEDRawDataCollection> bare_product(new  FEDRawDataCollection());
+  auto bare_product = std::make_unique<FEDRawDataCollection> ();
 	// here we parse the data
 	std::vector<uint16_t> skiwords;
 	// make sure there are an even number of 32-bit-words (a round number of 64 bit words...
@@ -128,7 +129,7 @@ void HGCalTBTextSource::produce(edm::Event & e)
 	size_t len = sizeof(uint16_t) * skiwords.size();
 	fed.resize(len);
 	memcpy(fed.data(), &(skiwords[0]), len);
-	e.put(bare_product);
+	e.put(std::move(bare_product));
 }
 
 

@@ -51,7 +51,9 @@ void FNALTelescopeRawToTracks::produce(edm::Event& e, const edm::EventSetup& c)
 	edm::Handle<FEDRawDataCollection> rawraw;
 	e.getByLabel(dataTag_, rawraw);
 
-	std::auto_ptr<HGCalTBTrackCollection> tracks = std::auto_ptr<HGCalTBTrackCollection>(new HGCalTBTrackCollection);
+	//std::auto_ptr<HGCalTBTrackCollection> tracks = std::auto_ptr<HGCalTBTrackCollection>(new HGCalTBTrackCollection);
+	auto tracks = std::make_unique<HGCalTBTrackCollection>();
+	//td::auto_ptr<HGCalTBTrackCollection> tracks = std::auto_ptr<HGCalTBTrackCollection>(new HGCalTBTrackCollection);
 
 	for(auto fedId_ : fedIds_) {
 
@@ -72,7 +74,8 @@ void FNALTelescopeRawToTracks::produce(edm::Event& e, const edm::EventSetup& c)
 
 
 	// put it into the event
-	e.put(tracks);
+	//e.put(tracks);
+	e.put(std::move(tracks));
 }
 
 void FNALTelescopeRawToTracks::fillDescription(edm::ParameterSetDescription &desc)

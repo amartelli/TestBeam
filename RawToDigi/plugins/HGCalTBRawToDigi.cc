@@ -31,7 +31,8 @@ void HGCalTBRawToDigi::produce(edm::Event& e, const edm::EventSetup& c)
 	edm::Handle<FEDRawDataCollection> rawraw;
 	e.getByLabel(dataTag_, rawraw);
 
-	std::auto_ptr<SKIROC2DigiCollection> digis(0);
+	//	std::auto_ptr<SKIROC2DigiCollection> digis(0);
+	auto digis = std::make_unique<SKIROC2DigiCollection>();
 	//
 	const FEDRawData& fed = rawraw->FEDData(fedId_);
 	if (fed.size() != 0) { /// \todo Exception if 0????
@@ -86,7 +87,8 @@ void HGCalTBRawToDigi::produce(edm::Event& e, const edm::EventSetup& c)
 	}// fed size > 0
 
 	// put it into the event
-	e.put(digis);
+	//	e.put(digis);
+	e.put(std::move(digis));
 }
 
 unsigned int gray_to_binary (unsigned int gray)
