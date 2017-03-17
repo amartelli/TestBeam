@@ -12,7 +12,7 @@
 namespace DataFormats_HGCTB
 {
 struct dictionary {
-	HGCalTBRecHit _aRecHit;
+	HGCalTBRecHit _aTBRecHit;
 	std::vector<HGCalTBRecHit> _HGCTBRHitVect;
 //	edm::SortedCollection<HGCalTBRecHit> _theHGCTBRsc;
 //	edm::Wrapper< HGCalTBRecHitCollection > _HGCTBeeRHitProd;
