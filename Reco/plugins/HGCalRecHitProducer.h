@@ -20,6 +20,9 @@
 //#include "HGCal/DataFormats/plugins/HGCGeometryReader.cc"
 #include "DataFormats/ForwardDetId/interface/HGCEEDetId.h"
 
+#include "FWCore/ServiceRegistry/interface/Service.h"
+#include "CommonTools/UtilAlgos/interface/TFileService.h"
+
 // here are defined objects containing pedestals and ADCtoGeV factors
 #include "HGCal/CondObjects/interface/HGCalCondObjects.h"
 #include "HGCal/CondObjects/interface/HGCalCondObjectTextIO.h"
@@ -27,17 +30,21 @@
 #include "HGCal/CondObjects/interface/HGCalElectronicsMap.h"
 #include "HGCal/DataFormats/interface/HGCalTBElectronicsId.h"
 #include "HGCal/Geometry/interface/HGCalTBCellVertices.h"
+#include "HGCal/Reco/interface/RecHitGeometryMapping.h"
 
+
+#include "TTree.h"
 #include "TH2F.h"
 #include <iostream>
 
-class HGCalRecHitProducer : public edm::EDProducer
+class HGCalRecHitProducer : public edm::one::EDProducer<edm::one::SharedResources>
 {
 
 public:
 	HGCalRecHitProducer(const edm::ParameterSet&);
 	virtual void produce(edm::Event&, const edm::EventSetup&);
 
+	/*
 	int getCellLayer(int TBlayer){
 	  //std::cout << " TBlayer = " << TBlayer << "corresponds to = " << CMSSW_cellLayer.at(TBlayer-1) << std::endl;
 	  return CMSSW_cellLayer.at(TBlayer-1);
@@ -51,14 +58,16 @@ public:
 	unsigned int getRawID(std::pair<int, int> layerCell){
 	  return (LayerCellID[layerCell]);
 	}
+	*/
 
 private:
 	std::string outputCollectionName;     ///<label name of collection made by this producer
 	edm::EDGetTokenT<HGCalTBRecHitCollection> _inputTBCollection;
 	int _layers_config;
-	std::string _treeName;
-	const int MaxNlayer = 8;
+	//	std::string _treeName;
+	//      std::string _treeNameTB;
 
+	const int MaxNlayer = 8;
 	const int sensorsize = 128;
 	const int CMthreshold = 2;
 	/* double commonmode[MaxNlayer]; */
@@ -76,15 +85,25 @@ private:
 
 	std::pair<double, double> CellCentreXY;
 	HGCalTBCellVertices TheCell;
-	std::vector<int> CMSSW_cellLayer;
+	//	std::vector<int> CMSSW_cellLayer;
 	std::vector<double> Weights_L;
 	std::vector<double> ADCtoMIP;
  
+	TH1F* h_layer;
+	TH1F* h_IU;
+	TH1F* h_IV;
+	TH1F* h_iu;
+	TH1F* h_iv;
+	TH1F* h_cellType;
 
-	std::map<std::pair<int, int>, unsigned int> LayerCellID;
-	TH2F* waferMap;
 
-	
+	TTree* TBtree;
+	Int_t layerTB;
+	Float_t localXTB;
+	Float_t localYTB;
+	UInt_t detIDTB;
+
+	RecHitGeometryMapping* TBcmsswGeometryMap;
 
 };
 

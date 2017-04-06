@@ -12,8 +12,8 @@ using namespace std;
 HGCalRecHitProducer::HGCalRecHitProducer(const edm::ParameterSet& cfg): 
   outputCollectionName(cfg.getParameter<std::string>("OutputCollectionName")),
   _inputTBCollection(consumes<HGCalTBRecHitCollection>(cfg.getParameter<edm::InputTag>("inputTBCollection"))),
-  _layers_config(cfg.getParameter<int>("layers_config")), 
-  _treeName(cfg.getParameter<std::string>("treeName")){
+  _layers_config(cfg.getParameter<int>("layers_config")){ 
+  //  _treeName(cfg.getParameter<std::string>("treeName")){
 
   //  produces <HGCRecHitCollection>(outputCollectionName);
   //  produces<HGCeeRecHitCollection>(outputCollectionName);
@@ -26,57 +26,41 @@ HGCalRecHitProducer::HGCalRecHitProducer(const edm::ParameterSet& cfg):
     ADCtoMIP = cfg.getParameter<std::vector<double> >("ADCtoMIP_CERN");
     //fixme check order 
     if(_layers_config == 1){
-      CMSSW_cellLayer = cfg.getParameter<std::vector<int> >("CMSSW_cellLayer_1");
+      //      CMSSW_cellLayer = cfg.getParameter<std::vector<int> >("CMSSW_cellLayer_1");
       Weights_L = cfg.getParameter<std::vector<double> >("LayerWeight_8L_conf1");
     }
     if(_layers_config == 2) {
-      CMSSW_cellLayer = cfg.getParameter<std::vector<int> >("CMSSW_cellLayer_2");
+      //      CMSSW_cellLayer = cfg.getParameter<std::vector<int> >("CMSSW_cellLayer_2");
       Weights_L = cfg.getParameter<std::vector<double> >("LayerWeight_8L_conf2");
     }
   }
   //  std::cout << " HGCalRecHitProducer::HGCalRecHitProducer get File " << std::endl;
-
-  // to load the detID 
-  TFile* inF = TFile::Open(_treeName.c_str());
-  TTree* tree = (TTree*)inF->Get("ana/t");
-  //  std::cout << " entries = " << tree->GetEntries() << std::endl;
-
-  Int_t   subdet, layer, wafer, cell;
-  Float_t z, locX, locY;
-  UInt_t detID;
-
-  tree->SetBranchAddress("subdet", &subdet);
-  tree->SetBranchAddress("layer",&layer);
-  tree->SetBranchAddress("wafer",&wafer);
-  tree->SetBranchAddress("cell",&cell);
-  tree->SetBranchAddress("detID", &detID);
-  tree->SetBranchAddress("z",&z);
-  tree->SetBranchAddress("locX",&locX);
-  tree->SetBranchAddress("locY",&locY);
-
-  //  waferMap = new TH2F("waferMap", "",  200, -10, 10, 200, -10, 10);
-  waferMap = new TH2F("waferMap", "", 23, -6.5, 6.5, 15, -7., 7.);
-  for(int ij=0; ij<tree->GetEntries(); ++ij){
-    tree->GetEntry(ij);
-
-    //    std::cout << " layer = " << layer << " wafer = " << wafer << " z = " << z << " subdet = " << subdet << " detID = " << detID << " cellID = " << cell << " bin = " << waferMap->FindBin(locX, locY) << std::endl;
-    if(wafer == 426 && z > 0 && subdet == 3 && cell < 132){    
-      if(layer == 1) waferMap->SetBinContent(waferMap->FindBin(locX, locY), cell);
-      std::pair<int, int> LayerCell(layer, cell);
-      LayerCellID[LayerCell] = detID;
-    }
-  }
 
   HGCalCondObjectTextIO io(0);
   edm::FileInPath fip(_mapFile);
   if (!io.load(fip.fullPath(), essource_.emap_)) {
     throw cms::Exception("Unable to load electronics map");
   };
-  
-  for(int iL=0; iL<MaxNlayer; ++iL){
-      commonmode[iL] = 0.;
-      cm_num[iL] = 0;
-  }
+
+    TBcmsswGeometryMap = new RecHitGeometryMapping(cfg);  
+
+    /*
+  usesResource("TFileService");
+  edm::Service<TFileService> fs;
+  // h_layer = fs->make<TH1F>("h_layer", "", 10, 0., 10.);
+  // h_IU = fs->make<TH1F>("h_IU", "", 100, 0., 100.);
+  // h_IV = fs->make<TH1F>("h_IV", "", 100, 0., 100.);
+  // h_iu = fs->make<TH1F>("h_iu", "", 100, 0., 100.);
+  // h_iv = fs->make<TH1F>("h_iv", "", 100, 0., 100.);
+  // h_cellType = fs->make<TH1F>("h_cellType", "", 10, 0., 10.);
+
+
+  TBtree = fs->make<TTree>("TBtree", "TBtree");
+  TBtree->Branch("layerTB",&layerTB, "layerTB/I");
+  TBtree->Branch("localXTB",&localXTB, "localXTB/F");
+  TBtree->Branch("localYTB",&localYTB, "localYTB/F");
+  TBtree->Branch("detIDTB",&detIDTB, "detIDTB/i");
+    */
 }
 
 
@@ -95,6 +79,10 @@ void HGCalRecHitProducer::produce(edm::Event& event, const edm::EventSetup& iSet
   //  std::cout << " TBRH size = " << tbRecHitsHandle->size() << std::endl;
 
   //compute CM
+  // float maxEnergy[8] = {-999.,  -999.,  -999.,  -999.,  -999.,  -999.,  -999., -999.};
+  // float XmaxRH[8] = {-999.,  -999.,  -999.,  -999.,  -999.,  -999.,  -999., -999.};
+  // float YmaxRH[8] = {-999.,  -999.,  -999.,  -999.,  -999.,  -999.,  -999., -999.}; 
+
   for(auto tbRH_itr = tbRecHitsHandle->begin(); tbRH_itr != tbRecHitsHandle->end(); ++tbRH_itr) {
 
     uint32_t EID = essource_.emap_.detId2eid(tbRH_itr->id());
@@ -118,6 +106,15 @@ void HGCalRecHitProducer::produce(edm::Event& event, const edm::EventSetup& iSet
   for(auto tbRH_itr = tbRecHitsHandle->begin(); tbRH_itr != tbRecHitsHandle->end(); ++tbRH_itr) {
 
     int n_cell_type = (tbRH_itr->id()).cellType();
+
+    // h_layer->Fill((tbRH_itr->id()).layer());
+    // h_IU->Fill((tbRH_itr->id()).sensorIU());    
+    // h_IV->Fill((tbRH_itr->id()).sensorIV());
+    // h_iu->Fill((tbRH_itr->id()).iu());    
+    // h_iv->Fill((tbRH_itr->id()).iv());
+    // h_cellType->Fill(n_cell_type);
+
+
     if(n_cell_type != 0 && n_cell_type != 4) continue;
 
 	  
@@ -125,21 +122,16 @@ void HGCalRecHitProducer::produce(edm::Event& event, const edm::EventSetup& iSet
     HGCalTBElectronicsId eid(EID);
     int eSkiroc = (eid.iskiroc() - 1);
 
-    //getting X and Y coordinates                                                                                                            
-    CellCentreXY = TheCell.GetCellCentreCoordinatesForPlots((tbRH_itr->id()).layer(), (tbRH_itr->id()).sensorIU(), (tbRH_itr->id()).sensorIV(), (tbRH_itr->id()).iu(), (tbRH_itr->id()).iv(), sensorsize);
+    // //getting X and Y coordinates                                                                                                            
+    // CellCentreXY = TheCell.GetCellCentreCoordinatesForPlots((tbRH_itr->id()).layer(), (tbRH_itr->id()).sensorIU(), (tbRH_itr->id()).sensorIV(), (tbRH_itr->id()).iu(), (tbRH_itr->id()).iv(), sensorsize);    
 
     int TBlayer = tbRH_itr->id().layer();
-    int layerID = getCellLayer(TBlayer);
 
-    //fixme va flippato
-    int cellID = getCellID(-CellCentreXY.second, CellCentreXY.first);
-
-    std::pair<int, int> layerCell(layerID, cellID);
-    //  std::cout << " start layer = " << tbRH_itr->id().layer() << " end layer = " << layerID << " TB id = " << eid.ichan() << " cellID = " << cellID << std::endl;
-    
-    unsigned int rawiddi = getRawID(layerCell);
-    //    std::cout << " rawiddi = " << rawiddi << std::endl;
+    unsigned int rawiddi = TBcmsswGeometryMap->getCMSSWID_fromTBID(tbRH_itr->id().rawId());
     DetId rechitID(rawiddi);
+
+    //FIXME
+    //DetId rechitID(tbRH_itr->id().rawId());
 
     //    std::cout << " build recHit "<< std::endl;
     HGCRecHit recHit( rechitID, tbRH_itr->energy(), tbRH_itr->time()); 
@@ -148,9 +140,34 @@ void HGCalRecHitProducer::produce(edm::Event& event, const edm::EventSetup& iSet
 
     //  std::cout << " push in event "<< std::endl;
     rechits->push_back(recHit);
+
   }
+
+  // for(int ij=0; ij<8; ++ij)
+  //   std::cout << "layer = " << ij+1 << " energy = " << maxEnergy[ij] << " XmaxRH = " << XmaxRH[ij] << " YmaxRH = " << YmaxRH[ij] << std::endl;
+
+
   event.put(std::move(rechits), outputCollectionName);
+
+  /*  
+  for(int iLay = 1; iLay<9; ++iLay){
+    for(int jiu=-7; jiu<8; ++jiu){
+      for(int jiv=-7; jiv<8; ++jiv){
+	for(int kT=0; kT<6; ++kT){
+
+	  HGCalTBDetId localDetID(iLay, 0, 0, jiu, jiv, kT);
+	  CellCentreXY = TheCell.GetCellCentreCoordinatesForPlots(iLay, 0, 0, jiu, jiv, sensorsize);       
   
+	  layerTB = iLay;
+	  localXTB = CellCentreXY.second;
+	  localYTB = -CellCentreXY.first;
+	  detIDTB = localDetID.rawId();
+	  if(localXTB > -7 && localXTB < 7 && localYTB > -7 && localYTB < 7)  TBtree->Fill();
+	}
+      }
+    }
+  }
+  */
 }
 // Should there be a destructor ??
 DEFINE_FWK_MODULE(HGCalRecHitProducer);
