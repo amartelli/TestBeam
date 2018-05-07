@@ -66,6 +66,8 @@ private:
 
   int m_highGainADCSaturation;
   int m_lowGainADCSaturation;
+  bool m_keepOnlyTimeSample3;
+
   int m_evtID;
   edm::EDGetTokenT<HGCalTBRawHitCollection> m_HGCalTBRawHitCollection;
 
@@ -104,7 +106,8 @@ RecHitsNtuplizer::RecHitsNtuplizer(const edm::ParameterSet& iConfig) :
   m_electronicMap(iConfig.getUntrackedParameter<std::string>("ElectronicMap","HGCal/CondObjects/data/map_CERN_Hexaboard_OneLayers_May2017.txt")),
   m_commonModeThreshold(iConfig.getUntrackedParameter<double>("CommonModeThreshold",100)),
   m_highGainADCSaturation(iConfig.getUntrackedParameter<double>("HighGainADCSaturation",1800)),
-  m_lowGainADCSaturation(iConfig.getUntrackedParameter<double>("LowGainADCSaturation",1800))
+  m_lowGainADCSaturation(iConfig.getUntrackedParameter<double>("LowGainADCSaturation",1800)),
+  m_keepOnlyTimeSample3(iConfig.getUntrackedParameter<bool>("KeepOnlyTimeSample3",true))
 {
   m_HGCalTBRawHitCollection = consumes<HGCalTBRawHitCollection>(iConfig.getParameter<edm::InputTag>("InputCollection"));
 
@@ -275,14 +278,15 @@ void RecHitsNtuplizer::analyze(const edm::Event& event, const edm::EventSetup& s
 	tsLG.push_back(lowGain);
 	sampleT.push_back(it*25);
       }
+
       //this is a just try to isolate hits with signal 
       float en2=hit.highGainADC(2)-subHG[2];
       float en3=hit.highGainADC(3)-subHG[3];
       float en4=hit.highGainADC(4)-subHG[4];
       float en6=hit.highGainADC(6)-subHG[6];
 
-
-      if(en2<en3 && en3>en6 && en4>en6 && en3>20){
+      if(!m_keepOnlyTimeSample3 && 
+	 (en2<en3 && en3>en6 && en4>en6 && en3>20)){
 	PulseFitter fitter(0,150);
 	PulseFitterResult fithg;
 	fitter.run(sampleT, tsHG, fithg);
@@ -296,36 +300,43 @@ void RecHitsNtuplizer::analyze(const edm::Event& event, const edm::EventSetup& s
 
 	hgStatus = fithg.status;
 	lgStatus = fitlg.status;
-
-	if(ampHG < m_highGainADCSaturation && hgStatus == 0){
-	  amp = ampHG;
-	  hgSat = 0;
-	  evtGOOD = 1;
-	}
-	else if(ampLG < m_lowGainADCSaturation && hgStatus == 0 && lgStatus == 0){
-	  amp = ampLG * m_LG2HG_value.at(iboard);
-	  hgSat = 1;
-	  lgSat = 0;
-	  evtGOOD = 1;
-	}
-	else if(hgStatus == 0 && lgStatus == 0 && ampTOT > 50){
-	  amp = ampTOT * m_TOT2LG_value.at(iboard) * m_LG2HG_value.at(iboard);
-	  hgSat = 1;
-	  lgSat = 1;
-	  evtGOOD = 1;
-	}
-	else{
-	  amp = -1;
-	  evtGOOD = 0;
-	}
       }
-
+      if(m_keepOnlyTimeSample3 &&
+	 (en2<en3 && en3>en6 && en4>en6)){
+	ampHG = hit.highGainADC(3) - subHG[3];
+	ampLG = hit.lowGainADC(3) - subLG[3];
+	hgStatus = 0;
+	lgStatus = 0;
+      }
+      
+      if(ampHG < m_highGainADCSaturation && hgStatus == 0){
+	amp = ampHG;
+	hgSat = 0;
+	evtGOOD = 1;
+      }
+      else if(ampLG < m_lowGainADCSaturation && hgStatus == 0 && lgStatus == 0){
+	amp = ampLG * m_LG2HG_value.at(iboard);
+	hgSat = 1;
+	lgSat = 0;
+	evtGOOD = 1;
+      }
+      else if(hgStatus == 0 && lgStatus == 0 && ampTOT > 50){
+	amp = ampTOT * m_TOT2LG_value.at(iboard) * m_LG2HG_value.at(iboard);
+	hgSat = 1;
+	lgSat = 1;
+	evtGOOD = 1;
+      }
+      else{
+	amp = -1;
+	evtGOOD = 0;
+      }
+    
       HGCalTBDetId detid = hit.detid();
       CellCentreXY = TheCell.GetCellCentreCoordinatesForPlots(detid.layer(), detid.sensorIU(), detid.sensorIV(), detid.iu(), detid.iv(), SENSORSIZE );
       posX = (CellCentreXY.first < 0 ) ? (CellCentreXY.first + deltaCellBoundary) : (CellCentreXY.first - deltaCellBoundary);
       posY = (CellCentreXY.second < 0 ) ? (CellCentreXY.second + deltaCellBoundary) : (CellCentreXY.second - deltaCellBoundary);      
     }
-    if(startTHG > 0. && startTLG > 0.) tree->Fill();
+    tree->Fill();
   }
   m_evtID++;
 }
